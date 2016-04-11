@@ -2,7 +2,9 @@
 
 CREATE TABLE artists (
   artist_id                     SERIAL PRIMARY KEY,
-  artist_name                   varchar(256) NOT NULL CHECK (artist_name <> '')
+  artist_name                   varchar(256) NOT NULL CHECK (artist_name <> ''),
+  short_name                    varchar(20) NOT NULL CHECK (short_name <> ''),
+  UNIQUE (short_name)
 );
 
 CREATE TABLE songs (
