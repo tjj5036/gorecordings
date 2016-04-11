@@ -23,6 +23,7 @@ CREATE TABLE concerts (
   concert_id                    SERIAL PRIMARY KEY,
   artist_id                     integer NOT NULL references artists(artist_id),
   venue_id                      integer NOT NULL references venues(venue_id),
+  date                          date,
   notes                         text
 );
 
