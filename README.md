@@ -1,8 +1,9 @@
 # Live Recordings in Go
 
-This repo is documenting going from 0 to 100 in Go by using the live recordings site that I wrote in Python (that needs a serious overhaul anyway) as a base.
+This repo is documenting going from 0 to 100 (miles, not miles per hour) in Go by using the live recordings site that I wrote in Python, which is need of a serious overhaul anyway, as a base.
 
 ## Requirements
 
 - PostgreSQL database that supports JSON (>= 9.2)
 - [pg driver](https://github.com/lib/pq) to interact with the database
+- [httprouter](https://github.com/julienschmidt/httprouter) for handling routes
