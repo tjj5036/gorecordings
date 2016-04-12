@@ -14,9 +14,18 @@ CREATE TABLE songs (
   lyrics                        text
 );
 
+CREATE TABLE location (
+  location_id                   SERIAL PRIMARY KEY,
+  city                          varchar(100) NOT NULL CHECK (city <> ''),
+  state                         varchar(100) NOT NULL CHECK (state <> ''),
+  country                       varchar(100) NOT NULL CHECK (country <> ''),
+  UNIQUE (city, state, country)
+);
+
 CREATE TABLE venues (
   venue_id                      SERIAL PRIMARY KEY,
-  venue_details                 json
+  venue_name                    varchar(256) NOT NULL CHECK (venue_name <> ''),
+  location_id                   integer NOT NULL references location(location_id)
 );
 
 CREATE TABLE concerts (
