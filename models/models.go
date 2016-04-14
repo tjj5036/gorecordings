@@ -5,6 +5,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/lib/pq"
 	"log"
 	"time"
@@ -17,9 +18,8 @@ type _artist struct {
 }
 
 type _song struct {
-	song_id   int
-	song_name string
-	artist    *_artist
+	Song_id   int
+	Song_name string
 }
 
 type _venue struct {
@@ -44,7 +44,7 @@ type _concert struct {
 	Artist     *_artist
 	Date       time.Time
 	Venue      _venue
-	setlist    *[]_song
+	Setlist    *[]_song
 	recordings *[]_recording
 	Notes      string
 }
@@ -134,20 +134,27 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 	concert := _concert{}
 
 	var _concert_id int
+	var _artist_id int
 	var concert_date time.Time
 	var concert_notes string // byte array?
+	var setlist_version int
 	var venue_name string
 	var location_city string
 	var location_state string
 	var location_country string
+	var artist_name string
+	var artist_shortname string
 
 	err := db.QueryRow(
-		"SELECT c.concert_id, c.date, c.notes, v.venue_name, l.city, l.state, l.country FROM concerts as c "+
+		"SELECT c.concert_id, c.artist_id, c.date, c.notes, c.setlist_version, "+
+			"v.venue_name, l.city, l.state, l.country, a.artist_name, "+
+			"a.short_name FROM concerts as c "+
 			"JOIN venues as v ON c.venue_id  = v.venue_id "+
 			"JOIN location as l on v.location_id = l.location_id "+
+			"JOIN artists as a on a.artist_id = c.artist_id"+
 			"WHERE c.concert_id = $1", concert_id).Scan(
-		&_concert_id, &concert_date, &concert_notes, &venue_name,
-		&location_city, &location_state, &location_country)
+		&_concert_id, &_artist_id, &concert_date, &concert_notes, &setlist_version, &venue_name,
+		&location_city, &location_state, &location_country, &artist_name, &artist_shortname)
 
 	if err != nil {
 		log.Print(err)
@@ -162,9 +169,47 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 		Country:    location_country,
 	}
 
+	artist := _artist{
+		Artist_id:   _artist_id,
+		Artist_name: artist_name,
+		Short_name:  artist_shortname,
+	}
+
+	rows, err := db.Query(
+		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, s.artist_name "+
+			"FROM concert_setlist AS cs JOIN songs AS ON cs.song_id = s.song_id "+
+			"WHERE cs.setlist_version = $1 ORDER BY cs.song_order ASC", setlist_version)
+	if err != nil {
+		log.Print(err)
+	}
+
+	songs := make([]_song, 0)
+	for rows.Next() {
+		var song_id int
+		var song_order int
+		var song_title string
+		var artist_id int
+		var artist_name string
+		err = rows.Scan(&song_id, &song_order, &song_title, &artist_id, &artist_name)
+		if err != nil {
+			log.Print(err)
+		}
+		if _artist_id != artist_id {
+			// Cover, reflect accordingly in song name
+			song_title = fmt.Sprintf("%s (%s)", song_title, artist_name)
+		}
+		song := _song{
+			Song_id:   song_id,
+			Song_name: song_title,
+		}
+		songs = append(songs, song)
+	}
+
+	concert.Artist = &artist
 	concert.Concert_id = _concert_id
 	concert.Date = concert_date
 	concert.Venue = venue
 	concert.Notes = concert_notes
+	concert.Setlist = &songs
 	return concert
 }
