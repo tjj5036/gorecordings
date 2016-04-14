@@ -25,9 +25,9 @@ type _song struct {
 type _venue struct {
 	Venue_id   int
 	Venue_name string
-	city       string
-	state      string
-	country    string
+	City       string
+	State      string
+	Country    string
 }
 
 type _recording struct {
@@ -46,7 +46,7 @@ type _concert struct {
 	Venue      _venue
 	setlist    *[]_song
 	recordings *[]_recording
-	notes      string
+	Notes      string
 }
 
 // GetArtist gets artist information from the database and returns
@@ -128,7 +128,43 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
 }
 
 // GetConcert returns a concert struct given a concert id
+// Strategy is to get the concert first (with all venue / location // details),
+// and then setlist / recording information
 func GetConcert(db *sql.DB, concert_id int) _concert {
-	concert := concert{}
+	concert := _concert{}
+
+	var _concert_id int
+	var concert_date time.Time
+	var concert_notes string // byte array?
+	var venue_name string
+	var location_city string
+	var location_state string
+	var location_country string
+
+	err := db.QueryRow(
+		"SELECT c.concert_id, c.date, c.notes, v.venue_name, l.city, l.state, l.country FROM concerts as c "+
+			"JOIN venues as v ON c.venue_id  = v.venue_id "+
+			"JOIN location as l on v.location_id = l.location_id "+
+			"WHERE c.concert_id = $1", concert_id).Scan(
+		&_concert_id, &concert_date, &concert_notes, &venue_name,
+		&location_city, &location_state, &location_country)
+
+	if err != nil {
+		log.Print(err)
+		log.Print("Unable to find concert with id $1", concert_id)
+		return concert
+	}
+
+	venue := _venue{
+		Venue_name: venue_name,
+		City:       location_city,
+		State:      location_state,
+		Country:    location_country,
+	}
+
+	concert.Concert_id = _concert_id
+	concert.Date = concert_date
+	concert.Venue = venue
+	concert.Notes = concert_notes
 	return concert
 }
