@@ -126,3 +126,9 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
 	}
 	return concerts
 }
+
+// GetConcert returns a concert struct given a concert id
+func GetConcert(db *sql.DB, concert_id int) _concert {
+	concert := concert{}
+	return concert
+}
