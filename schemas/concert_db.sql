@@ -33,12 +33,15 @@ CREATE TABLE concerts (
   artist_id                     integer NOT NULL references artists(artist_id),
   venue_id                      integer NOT NULL references venues(venue_id),
   date                          date,
-  notes                         text
+  notes                         text,
+  setlist_version               integer
 );
 
-CREATE TABLE concert_setlist_mapping (
+CREATE TABLE concert_setlist (
   concert_id                    integer NOT NULL references concerts(concert_id),
-  songs                         integer ARRAY
+  song_id                       integer NOT NULL references songs(song_id),
+  song_order                    integer NOT NULL,
+  version                       integer NOT NULL
 );
 
 CREATE TABLE recording_types (
