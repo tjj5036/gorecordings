@@ -134,7 +134,7 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 	concert := _concert{}
 
 	var _concert_id int
-	var _artist_id int
+	var artist_id int
 	var concert_date time.Time
 	var concert_notes string // byte array?
 	var setlist_version int
@@ -153,7 +153,7 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 			"JOIN location as l on v.location_id = l.location_id "+
 			"JOIN artists as a on a.artist_id = c.artist_id"+
 			"WHERE c.concert_id = $1", concert_id).Scan(
-		&_concert_id, &_artist_id, &concert_date, &concert_notes, &setlist_version, &venue_name,
+		&_concert_id, &artist_id, &concert_date, &concert_notes, &setlist_version, &venue_name,
 		&location_city, &location_state, &location_country, &artist_name, &artist_shortname)
 
 	if err != nil {
@@ -170,7 +170,7 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 	}
 
 	artist := _artist{
-		Artist_id:   _artist_id,
+		Artist_id:   artist_id,
 		Artist_name: artist_name,
 		Short_name:  artist_shortname,
 	}
@@ -188,15 +188,15 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 		var song_id int
 		var song_order int
 		var song_title string
-		var artist_id int
-		var artist_name string
-		err = rows.Scan(&song_id, &song_order, &song_title, &artist_id, &artist_name)
+		var cover_artist_id int
+		var cover_artist_name string
+		err = rows.Scan(&song_id, &song_order, &song_title, &artist_id, &cover_artist_name)
 		if err != nil {
 			log.Print(err)
 		}
-		if _artist_id != artist_id {
+		if _artist_id != cover_artist_id {
 			// Cover, reflect accordingly in song name
-			song_title = fmt.Sprintf("%s (%s)", song_title, artist_name)
+			song_title = fmt.Sprintf("%s (%s)", song_title, cover_artist_name)
 		}
 		song := _song{
 			Song_id:   song_id,
