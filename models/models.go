@@ -41,11 +41,11 @@ type _recording struct {
 
 type _concert struct {
 	Concert_id int
-	Artist     *_artist
+	Artist     _artist
 	Date       time.Time
 	Venue      _venue
-	Setlist    *[]_song
-	Recordings *[]_recording
+	Setlist    []_song
+	Recordings []_recording
 	Notes      string
 }
 
@@ -127,12 +127,94 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
 	return concerts
 }
 
+// getRecordingsForConcert returns all recordings for a given concert
+func getRecordingsForConcert(db *sql.DB, concert_id int) []_recording {
+	recordings := make([]_recording, 0)
+	rows, err := db.Query(
+		"SELECT rt.recording_name, s.source_name, r.recording_id, r.taper, "+
+			"r.length, r.notes FROM recording as r "+
+			"JOIN concert_recording_mapping as crm ON crm.recording_id = r.recording_id "+
+			"JOIN recording_types as rt ON r.recording_type = rt.recording_type_id "+
+			"JOIN source_types as s ON r.source_type = s.source_type_id "+
+			"WHERE crm.concert_id = $1", concert_id)
+	if err != nil {
+		log.Print(err)
+		return recordings
+	}
+	for rows.Next() {
+		var recording_type_name string
+		var source_type_name string
+		var recording_id int
+		var taper string
+		var length int
+		var notes string // bytes?
+		err = rows.Scan(
+			&recording_type_name, &source_type_name, &recording_id,
+			&taper, &length, &notes)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		recording := _recording{
+			Recording_id:   recording_id,
+			Recording_type: recording_type_name,
+			Source_type:    source_type_name,
+			Taper:          taper,
+			Length:         length,
+			Notes:          notes,
+		}
+		recordings = append(recordings, recording)
+	}
+	return recordings
+
+}
+
+// getSetlistForConcert returns a list of songs for a concer
+func getSetlistForConcert(
+	db *sql.DB, setlist_version int, concert_id int, artist_id int) []_song {
+	songs := make([]_song, 0)
+	if setlist_version == -1 {
+		log.Printf("No setlist for concert %v", concert_id)
+		return songs
+	}
+	rows, err := db.Query(
+		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, s.artist_name "+
+			"FROM concert_setlist AS cs JOIN songs AS ON cs.song_id = s.song_id "+
+			"WHERE cs.setlist_version = $1 ORDER BY cs.song_order ASC", setlist_version)
+	if err != nil {
+		log.Print(err)
+		return songs
+	}
+
+	for rows.Next() {
+		var song_id int
+		var song_order int
+		var song_title string
+		var cover_artist_id int
+		var cover_artist_name string
+		err = rows.Scan(&song_id, &song_order, &song_title, &artist_id, &cover_artist_name)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		if artist_id != cover_artist_id {
+			// Cover, reflect accordingly in song name
+			song_title = fmt.Sprintf("%s (%s)", song_title, cover_artist_name)
+		}
+		song := _song{
+			Song_id:   song_id,
+			Song_name: song_title,
+		}
+		songs = append(songs, song)
+	}
+	return songs
+}
+
 // GetConcert returns a concert struct given a concert id
 // Strategy is to get the concert first (with all venue / location // details),
 // and then setlist / recording information
 func GetConcert(db *sql.DB, concert_id int) _concert {
 	concert := _concert{}
-
 	var _concert_id int
 	var artist_id int
 	var concert_date time.Time
@@ -146,21 +228,24 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 	var artist_shortname string
 
 	err := db.QueryRow(
-		"SELECT c.concert_id, c.artist_id, c.date, c.notes, c.setlist_version, "+
+		"SELECT c.concert_id, c.artist_id, c.date, c.notes, COALESCE(c.setlist_version, -1), "+
 			"v.venue_name, l.city, l.state, l.country, a.artist_name, "+
 			"a.short_name FROM concerts as c "+
 			"JOIN venues as v ON c.venue_id  = v.venue_id "+
 			"JOIN location as l on v.location_id = l.location_id "+
-			"JOIN artists as a on a.artist_id = c.artist_id"+
+			"JOIN artists as a on a.artist_id = c.artist_id "+
 			"WHERE c.concert_id = $1", concert_id).Scan(
 		&_concert_id, &artist_id, &concert_date, &concert_notes, &setlist_version, &venue_name,
 		&location_city, &location_state, &location_country, &artist_name, &artist_shortname)
 
 	if err != nil {
 		log.Print(err)
-		log.Print("Unable to find concert with id $1", concert_id)
+		log.Printf("Unable to find concert with id %v", concert_id)
 		return concert
 	}
+
+	recordings := getRecordingsForConcert(db, concert_id)
+	songs := getSetlistForConcert(db, setlist_version, concert_id, artist_id)
 
 	venue := _venue{
 		Venue_name: venue_name,
@@ -175,77 +260,12 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 		Short_name:  artist_shortname,
 	}
 
-	rows, err := db.Query(
-		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, s.artist_name "+
-			"FROM concert_setlist AS cs JOIN songs AS ON cs.song_id = s.song_id "+
-			"WHERE cs.setlist_version = $1 ORDER BY cs.song_order ASC", setlist_version)
-	if err != nil {
-		log.Print(err)
-	}
-
-	songs := make([]_song, 0)
-	for rows.Next() {
-		var song_id int
-		var song_order int
-		var song_title string
-		var cover_artist_id int
-		var cover_artist_name string
-		err = rows.Scan(&song_id, &song_order, &song_title, &artist_id, &cover_artist_name)
-		if err != nil {
-			log.Print(err)
-		}
-		if artist_id != cover_artist_id {
-			// Cover, reflect accordingly in song name
-			song_title = fmt.Sprintf("%s (%s)", song_title, cover_artist_name)
-		}
-		song := _song{
-			Song_id:   song_id,
-			Song_name: song_title,
-		}
-		songs = append(songs, song)
-	}
-
-	recordings := make([]_recording, 0)
-	rows, err = db.Query(
-		"SELECT rt.recording_name, s.source_name, r.recording_id, r.taper, "+
-			"r.length, r.notes FROM recording as r "+
-			"JOIN concert_recording_mapping as crm ON crm.recording_id = r.recording_id "+
-			"JOIN recording_types as rt ON r.recording_type = rt.recording_type_id "+
-			"JOIN source_types as s ON r.source_type = s.source_type_id "+
-			"WHERE crm.concert_id = $1", concert_id)
-	if err != nil {
-		log.Print(err)
-	}
-	for rows.Next() {
-		var recording_type_name string
-		var source_type_name string
-		var recording_id int
-		var taper string
-		var length int
-		var notes string // bytes?
-		err = rows.Scan(
-			&recording_type_name, &source_type_name, &recording_id,
-			&taper, &length, &notes)
-		if err != nil {
-			log.Print(err)
-		}
-		recording := _recording{
-			Recording_id:   recording_id,
-			Recording_type: recording_type_name,
-			Source_type:    source_type_name,
-			Taper:          taper,
-			Length:         length,
-			Notes:          notes,
-		}
-		recordings = append(recordings, recording)
-	}
-
-	concert.Artist = &artist
+	concert.Artist = artist
 	concert.Concert_id = _concert_id
 	concert.Date = concert_date
 	concert.Venue = venue
-	concert.Setlist = &songs
-	concert.Recordings = &recordings
+	concert.Setlist = songs
+	concert.Recordings = recordings
 	concert.Notes = concert_notes
 	return concert
 }
