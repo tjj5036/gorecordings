@@ -31,12 +31,12 @@ type _venue struct {
 }
 
 type _recording struct {
-	recording_id   int
-	recording_type string
-	source_type    string
-	taper          string
-	legnth         int
-	notes          string
+	Recording_id   int
+	Recording_type string
+	Source_type    string
+	Taper          string
+	Length         int
+	Notes          string
 }
 
 type _concert struct {
@@ -45,7 +45,7 @@ type _concert struct {
 	Date       time.Time
 	Venue      _venue
 	Setlist    *[]_song
-	recordings *[]_recording
+	Recordings *[]_recording
 	Notes      string
 }
 
@@ -194,7 +194,7 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 		if err != nil {
 			log.Print(err)
 		}
-		if _artist_id != cover_artist_id {
+		if artist_id != cover_artist_id {
 			// Cover, reflect accordingly in song name
 			song_title = fmt.Sprintf("%s (%s)", song_title, cover_artist_name)
 		}
@@ -205,11 +205,47 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 		songs = append(songs, song)
 	}
 
+	recordings := make([]_recording, 0)
+	rows, err = db.Query(
+		"SELECT rt.recording_name, s.source_name, r.recording_id, r.taper, "+
+			"r.length, r.notes FROM recording as r "+
+			"JOIN concert_recording_mapping as crm ON crm.recording_id = r.recording_id "+
+			"JOIN recording_types as rt ON r.recording_type = rt.recording_type_id "+
+			"JOIN source_types as s ON r.source_type = s.source_type_id "+
+			"WHERE crm.concert_id = $1", concert_id)
+	if err != nil {
+		log.Print(err)
+	}
+	for rows.Next() {
+		var recording_type_name string
+		var source_type_name string
+		var recording_id int
+		var taper string
+		var length int
+		var notes string // bytes?
+		err = rows.Scan(
+			&recording_type_name, &source_type_name, &recording_id,
+			&taper, &length, &notes)
+		if err != nil {
+			log.Print(err)
+		}
+		recording := _recording{
+			Recording_id:   recording_id,
+			Recording_type: recording_type_name,
+			Source_type:    source_type_name,
+			Taper:          taper,
+			Length:         length,
+			Notes:          notes,
+		}
+		recordings = append(recordings, recording)
+	}
+
 	concert.Artist = &artist
 	concert.Concert_id = _concert_id
 	concert.Date = concert_date
 	concert.Venue = venue
-	concert.Notes = concert_notes
 	concert.Setlist = &songs
+	concert.Recordings = &recordings
+	concert.Notes = concert_notes
 	return concert
 }
