@@ -34,7 +34,9 @@ CREATE TABLE concerts (
   venue_id                      integer NOT NULL references venues(venue_id),
   date                          date,
   notes                         text,
-  setlist_version               integer
+  setlist_version               integer,
+  concert_friendly_url          varchar(256) NOT NULL,
+  UNIQUE concert_friendly_url
 );
 
 CREATE TABLE concert_setlist (
