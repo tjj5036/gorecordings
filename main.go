@@ -16,7 +16,7 @@ func main() {
 	router.GET("/artists", routes_artist.ArtistListing)
 	router.GET("/artists/:short_name", routes_artist.ArtistConcertListing)
 	router.GET(
-		"/artists/:short_name/:concert_friendly_url",
+		"/artists/:short_name/:concert_url",
 		routes_concert.ConcertInfoFromConcertUrl)
 	log.Fatal(http.ListenAndServe(":8009", router))
 }
