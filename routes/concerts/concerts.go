@@ -11,7 +11,7 @@ import (
 )
 
 // ConcertInfo Displays all information for a given concert
-func ConcertInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func ConcertInfoFromConcertId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	concert_id := ps.ByName("concert_id")
 	concert_id_int, err := strconv.Atoi(concert_id)
@@ -27,7 +27,7 @@ func ConcertInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 // ConcertInfo Displays all information for a given concert given a URL
-func ConcertInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func ConcertInfoFromConcertUrl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	concert_friendly_url := ps.ByName("concert_friendly_url")
 	// TODO: make appropriate DB call
