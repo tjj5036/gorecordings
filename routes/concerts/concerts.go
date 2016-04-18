@@ -29,6 +29,10 @@ func ConcertInfoFromConcertId(w http.ResponseWriter, r *http.Request, ps httprou
 // ConcertInfo Displays all information for a given concert given a URL
 func ConcertInfoFromConcertUrl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
-	concert_friendly_url := ps.ByName("concert_friendly_url")
-	// TODO: make appropriate DB call
+	concert_url := ps.ByName("concert_url")
+	concert := models.GetConcertFromURL(db, concert_url)
+	fmt.Fprintf(
+		w,
+		"%v",
+		concert.Date)
 }
