@@ -5,6 +5,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/tjj5036/gorecordings/database"
 	"github.com/tjj5036/gorecordings/models"
+	"github.com/tjj5036/gorecordings/util"
 	"net/http"
 )
 
@@ -12,13 +13,17 @@ import (
 func ArtistListing(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	db := database.CreateDBHandler()
 	artists := models.GetArtists(db)
-	for i := 0; i < len(artists); i++ {
-		artist := artists[i]
-		fmt.Fprintf(
-			w,
-			"%v %v %v",
-			artist.Artist_id, artist.Artist_name, artist.Short_name)
+	artists_to_num_shows := models.GetNumShowsForArtists(db, -1)
+	data := struct {
+		Title             string
+		Artists           []models.Artist
+		ArtistsToNumShows map[int]int
+	}{
+		"Artists",
+		artists,
+		artists_to_num_shows,
 	}
+	util.RenderTemplate(w, "artist_listing.html", data)
 }
 
 // ArtistConcertList lists all concerts for a given artist's short name

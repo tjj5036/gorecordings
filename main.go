@@ -18,5 +18,6 @@ func main() {
 	router.GET(
 		"/artists/:short_name/:concert_url",
 		routes_concert.ConcertInfoFromConcertUrl)
+	router.ServeFiles("/static/*filepath", http.Dir("./static"))
 	log.Fatal(http.ListenAndServe(":8009", router))
 }
