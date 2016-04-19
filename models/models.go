@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type _artist struct {
+type Artist struct {
 	Artist_id   int
 	Artist_name string
 	Short_name  string
@@ -41,7 +41,7 @@ type _recording struct {
 
 type _concert struct {
 	Concert_id int
-	Artist     _artist
+	Artist     Artist
 	Date       time.Time
 	Venue      _venue
 	Setlist    []_song
@@ -51,8 +51,8 @@ type _concert struct {
 
 // GetArtist gets artist information from the database and returns
 // a list of artists
-func GetArtists(db *sql.DB) []_artist {
-	artists := make([]_artist, 0)
+func GetArtists(db *sql.DB) []Artist {
+	artists := make([]Artist, 0)
 
 	rows, err := db.Query("Select artist_id, artist_name, short_name FROM artists")
 	if err != nil {
@@ -69,7 +69,7 @@ func GetArtists(db *sql.DB) []_artist {
 			log.Print(err)
 			return artists
 		}
-		artist_data := _artist{
+		artist_data := Artist{
 			Artist_id:   artist_id,
 			Artist_name: artist_name,
 			Short_name:  short_name,
@@ -125,6 +125,42 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
 		concerts = append(concerts, concert)
 	}
 	return concerts
+}
+
+// GetNumShowsForArtists returns the number of shows for a given artist
+// Pass in -1 to get data for all artists
+func GetNumShowsForArtists(db *sql.DB, artist_id int) map[int]int {
+	var artists_to_num_shows = make(map[int]int)
+	var err error
+	var rows *sql.Rows
+
+	if artist_id == -1 {
+		rows, err = db.Query(
+			"SELECT a.artist_id, count(c.artist_id) as num_concerts FROM " +
+				"artists as a LEFT JOIN concerts as c on a.artist_id = c.artist_id " +
+				"GROUP BY a.artist_id")
+	} else {
+		rows, err = db.Query(
+			"SELECT a.artist_id, count(c.artist_id) as num_concerts FROM "+
+				"artists as a LEFT JOIN concerts as c on a.artist_id = c.artist_id "+
+				"WHERE a.artist_id = $1 GROUP BY a.artist_id", artist_id)
+	}
+	if err != nil {
+		log.Print(err)
+		return artists_to_num_shows
+	}
+	for rows.Next() {
+		var artist_id int
+		var num_concerts int
+		err = rows.Scan(&artist_id, &num_concerts)
+		if err != nil {
+			log.Print(err)
+			return artists_to_num_shows
+		}
+		artists_to_num_shows[artist_id] = num_concerts
+	}
+	return artists_to_num_shows
+
 }
 
 // getRecordingsForConcert returns all recordings for a given concert
@@ -254,7 +290,7 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 		Country:    location_country,
 	}
 
-	artist := _artist{
+	artist := Artist{
 		Artist_id:   artist_id,
 		Artist_name: artist_name,
 		Short_name:  artist_shortname,
@@ -314,7 +350,7 @@ func GetConcertFromURL(db *sql.DB, concert_url string) _concert {
 		Country:    location_country,
 	}
 
-	artist := _artist{
+	artist := Artist{
 		Artist_id:   artist_id,
 		Artist_name: artist_name,
 		Short_name:  artist_shortname,
