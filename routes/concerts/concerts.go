@@ -1,38 +1,30 @@
 package routes_concert
 
 import (
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/tjj5036/gorecordings/database"
 	"github.com/tjj5036/gorecordings/models"
-	"log"
+	"github.com/tjj5036/gorecordings/util"
 	"net/http"
-	"strconv"
 )
-
-// ConcertInfo Displays all information for a given concert
-func ConcertInfoFromConcertId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db := database.CreateDBHandler()
-	concert_id := ps.ByName("concert_id")
-	concert_id_int, err := strconv.Atoi(concert_id)
-	if err != nil {
-		log.Print("Cannot concert concert_id to int")
-		fmt.Fprintf(w, "Invalid concert ID provided!")
-	}
-	concert_data := models.GetConcert(db, concert_id_int)
-	fmt.Fprintf(
-		w,
-		"%v",
-		concert_data.Date)
-}
 
 // ConcertInfo Displays all information for a given concert given a URL
 func ConcertInfoFromConcertUrl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
+	short_name := ps.ByName("short_name")
+	artist_name := models.GetArtistFromShortName(db, short_name)
 	concert_url := ps.ByName("concert_url")
 	concert := models.GetConcertFromURL(db, concert_url)
-	fmt.Fprintf(
-		w,
-		"%v",
-		concert.Date)
+	page_title := artist_name + " - " + concert.Date.Format("2006-01-02")
+
+	data := struct {
+		Title       string
+		Artist_Name string
+		ConcertInfo models.Concert
+	}{
+		page_title,
+		artist_name,
+		concert,
+	}
+	util.RenderTemplate(w, "concert_info.html", data)
 }
