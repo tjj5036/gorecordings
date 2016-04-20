@@ -8,6 +8,27 @@ import (
 	"net/http"
 )
 
+// SongInfo lists all info for a song
+func SongInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	db := database.CreateDBHandler()
+	short_name := ps.ByName("short_name")
+	artist_name := models.GetArtistFromShortName(db, short_name)
+
+	song_url := ps.ByName("song_url")
+	song_info := models.GetSongInfo(db, song_url)
+
+	data := struct {
+		Title       string
+		Artist_Name string
+		SongInfo    models.Song
+	}{
+		artist_name + " - " + song_info.Song_name,
+		artist_name,
+		song_info,
+	}
+	util.RenderTemplate(w, "song_info.html", data)
+}
+
 // ArtistListing lists all artists in the database
 func ArtistListing(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	db := database.CreateDBHandler()
