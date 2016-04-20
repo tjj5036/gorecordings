@@ -65,6 +65,12 @@ CREATE TABLE recording (
   notes                         text
 );
 
+CREATE TABLE recording_preview_urls (
+  recording_preview_url_id      SERIAL PRIMARY KEY,
+  recording_id                  integer NOT NULL references recording(recording_id),
+  preview_url                   varchar (256) NOT NULL
+)
+
 CREATE TABLE concert_recording_mapping (
   recording_id                  integer NOT NULL references recording(recording_id),
   concert_id                    integer NOT NULL references concerts(concert_id),
