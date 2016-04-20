@@ -39,7 +39,7 @@ type _recording struct {
 	Notes          string
 }
 
-type _concert struct {
+type Concert struct {
 	Concert_id int
 	Artist     Artist
 	Date       time.Time
@@ -47,6 +47,21 @@ type _concert struct {
 	Setlist    []_song
 	Recordings []_recording
 	Notes      string
+	URL        string
+}
+
+// GetArtistFromShortName returns the full artist name from the DB
+// given its short name
+func GetArtistFromShortName(db *sql.DB, short_name string) string {
+	var artist_name string
+	err := db.QueryRow(
+		"Select artist_name FROM artists WHERE artists.short_name = $1",
+		short_name).Scan(&artist_name)
+	if err != nil {
+		log.Print(err)
+		return ""
+	}
+	return artist_name
 }
 
 // GetArtist gets artist information from the database and returns
@@ -81,15 +96,18 @@ func GetArtists(db *sql.DB) []Artist {
 
 // GetConcertsForArtists returns all concerts for an artist that
 // has that short_name
-func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
+func GetConcertsForArtist(db *sql.DB, short_name string) []Concert {
 
-	var concerts = make([]_concert, 0)
+	var concerts = make([]Concert, 0)
 	var venues = make(map[int]_venue)
 
 	rows, err := db.Query(
-		"SELECT c.concert_id, c.date, v.venue_name, v.venue_id FROM concerts AS c "+
+		"SELECT c.concert_id, c.concert_friendly_url, c.date, "+
+			"v.venue_name, v.venue_id, l.city, l.state, l.country "+
+			"FROM concerts AS c "+
 			"JOIN artists AS a ON c.artist_id = a.artist_id "+
 			"JOIN venues As v on v.venue_id = c.venue_id "+
+			"JOIN location as l on v.location_id = l.location_id "+
 			"WHERE a.short_name = $1 ", short_name)
 	if err != nil {
 		log.Print(err)
@@ -99,9 +117,15 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
 	for rows.Next() {
 		var concert_id int
 		var concert_date time.Time
+		var concert_friendly_url string
 		var venue_name string
 		var venue_id int
-		err = rows.Scan(&concert_id, &concert_date, &venue_name, &venue_id)
+		var location_city string
+		var location_state string
+		var location_country string
+		err = rows.Scan(
+			&concert_id, &concert_friendly_url, &concert_date,
+			&venue_name, &venue_id, &location_city, &location_state, &location_country)
 		if err != nil {
 			log.Print(err)
 			return concerts
@@ -112,15 +136,19 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []_concert {
 			venue_info := _venue{
 				Venue_id:   venue_id,
 				Venue_name: venue_name,
+				City:       location_city,
+				State:      location_state,
+				Country:    location_country,
 			}
 			venues[venue_id] = venue_info
 		}
 
 		// Create concert object
-		concert := _concert{
+		concert := Concert{
 			Concert_id: concert_id,
 			Date:       concert_date,
 			Venue:      venues[venue_id],
+			URL:        concert_friendly_url,
 		}
 		concerts = append(concerts, concert)
 	}
@@ -249,8 +277,8 @@ func getSetlistForConcert(
 // GetConcert returns a concert struct given a concert id
 // Strategy is to get the concert first (with all venue / location // details),
 // and then setlist / recording information
-func GetConcert(db *sql.DB, concert_id int) _concert {
-	concert := _concert{}
+func GetConcert(db *sql.DB, concert_id int) Concert {
+	concert := Concert{}
 	var _concert_id int
 	var artist_id int
 	var concert_date time.Time
@@ -309,8 +337,8 @@ func GetConcert(db *sql.DB, concert_id int) _concert {
 // GetConcertFromURL returns a concert struct given a URL extension
 // Strategy is to get the concert first (with all venue / location // details),
 // and then setlist / recording information
-func GetConcertFromURL(db *sql.DB, concert_url string) _concert {
-	concert := _concert{}
+func GetConcertFromURL(db *sql.DB, concert_url string) Concert {
+	concert := Concert{}
 	var concert_id int
 	var artist_id int
 	var concert_date time.Time
