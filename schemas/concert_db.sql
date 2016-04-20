@@ -11,7 +11,9 @@ CREATE TABLE songs (
   song_id                       SERIAL PRIMARY KEY,
   artist_id                     integer NOT NULL references artists(artist_id),
   title                         varchar(256) NOT NULL,
-  lyrics                        text
+  lyrics                        text,
+  song_url                      varchar(256) NOT NULL,
+  UNIQUE (artist_id, song_url)
 );
 
 CREATE TABLE location (

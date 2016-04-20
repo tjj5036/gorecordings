@@ -17,9 +17,10 @@ type Artist struct {
 	Short_name  string
 }
 
-type _song struct {
+type Song struct {
 	Song_id   int
 	Song_name string
+	Lyrics    string
 }
 
 type _venue struct {
@@ -45,10 +46,32 @@ type Concert struct {
 	Artist     Artist
 	Date       time.Time
 	Venue      _venue
-	Setlist    []_song
+	Setlist    []Song
 	Recordings []_recording
 	Notes      string
 	URL        string
+}
+
+// GetSongInfo returns all information relating to a song
+func GetSongInfo(db *sql.DB, song_url string) Song {
+	song := Song{}
+	var song_id int
+	var artist_id int
+	var title string
+	var lyrics string
+	err := db.QueryRow(
+		"Select s.song_id, s.artist_id, s.title, s.lyrics FROM songs as s "+
+			"WHERE s.song_url = $1", song_url).Scan(
+		&song_id, &artist_id, &title, &lyrics)
+	if err != nil {
+		log.Print(err)
+		return song
+	}
+	song.Song_id = song_id
+	song.Song_name = title
+	song.Lyrics = lyrics
+	// Get first, last played here eventually
+	return song
 }
 
 // GetArtistFromShortName returns the full artist name from the DB
@@ -236,8 +259,8 @@ func getRecordingsForConcert(db *sql.DB, concert_id int) []_recording {
 
 // getSetlistForConcert returns a list of songs for a concer
 func getSetlistForConcert(
-	db *sql.DB, setlist_version int, concert_id int, artist_id int) []_song {
-	songs := make([]_song, 0)
+	db *sql.DB, setlist_version int, concert_id int, artist_id int) []Song {
+	songs := make([]Song, 0)
 	if setlist_version == -1 {
 		log.Printf("No setlist for concert %v", concert_id)
 		return songs
@@ -266,7 +289,7 @@ func getSetlistForConcert(
 			// Cover, reflect accordingly in song name
 			song_title = fmt.Sprintf("%s (%s)", song_title, cover_artist_name)
 		}
-		song := _song{
+		song := Song{
 			Song_id:   song_id,
 			Song_name: song_title,
 		}
