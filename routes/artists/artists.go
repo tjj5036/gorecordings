@@ -1,7 +1,6 @@
 package routes_artist
 
 import (
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/tjj5036/gorecordings/database"
 	"github.com/tjj5036/gorecordings/models"
@@ -31,13 +30,18 @@ func ArtistConcertListing(
 	w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	short_name := ps.ByName("short_name")
+	artist_name := models.GetArtistFromShortName(db, short_name)
 	concerts := models.GetConcertsForArtist(db, short_name)
-	for i := 0; i < len(concerts); i++ {
-		concert := concerts[i]
-		fmt.Fprintf(
-			w,
-			"%v %v %v",
-			concert.Concert_id, concert.Date, concert.Venue.Venue_name,
-		)
+	data := struct {
+		Title       string
+		Artist_Name string
+		Short_Name  string
+		Concerts    []models.Concert
+	}{
+		artist_name + " concets",
+		artist_name,
+		short_name,
+		concerts,
 	}
+	util.RenderTemplate(w, "concert_listing_for_artist.html", data)
 }
