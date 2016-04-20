@@ -37,6 +37,7 @@ type _recording struct {
 	Taper          string
 	Length         int
 	Notes          string
+	PreviewURLS    []string
 }
 
 type Concert struct {
