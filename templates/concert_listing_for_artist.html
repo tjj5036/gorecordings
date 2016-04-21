@@ -13,7 +13,7 @@
         <tbody>
           {{ range .Concerts }}
           <tr>
-            <td><a href="/artists/{{$.Short_Name}}/{{.URL}}">{{.Date.Format "2006-01-02"}}</a></td>
+            <td><a href="/artists/{{$.Short_Name}}/concert/{{.URL}}">{{.Date.Format "2006-01-02"}}</a></td>
             <td>{{.Venue.Venue_name}} - {{.Venue.City}}, {{.Venue.State}} {{.Venue.Country}}</td>
           </tr>
           {{end}}
