@@ -20,8 +20,12 @@
     </div>
     <div class="col-md-6">
       <h3>Setlist</h3>
+      <div>
       {{ if .ConcertInfo.Setlist }}
-      <p>TODO: render setlist</p>
+      {{ range $index, $song := .ConcertInfo.Setlist }}<br>
+      {{ $index }}. {{ $song.Song_name }}
+      {{ end }}
+      </div>
       {{ else }}
       <p>Setlist is not known!</p>
       {{ end }}
