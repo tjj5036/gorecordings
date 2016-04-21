@@ -283,9 +283,10 @@ func getSetlistForConcert(
 		return songs
 	}
 	rows, err := db.Query(
-		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, s.artist_name "+
-			"FROM concert_setlist AS cs JOIN songs AS ON cs.song_id = s.song_id "+
-			"WHERE cs.setlist_version = $1 ORDER BY cs.song_order ASC", setlist_version)
+		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, a.artist_name "+
+			"FROM concert_setlist AS cs JOIN songs AS s ON cs.song_id = s.song_id "+
+			"JOIN artists as a ON s.artist_id = a.artist_id "+
+			"WHERE cs.version = $1 ORDER BY cs.song_order ASC", setlist_version)
 	if err != nil {
 		log.Print(err)
 		return songs
@@ -297,7 +298,7 @@ func getSetlistForConcert(
 		var song_title string
 		var cover_artist_id int
 		var cover_artist_name string
-		err = rows.Scan(&song_id, &song_order, &song_title, &artist_id, &cover_artist_name)
+		err = rows.Scan(&song_id, &song_order, &song_title, &cover_artist_id, &cover_artist_name)
 		if err != nil {
 			log.Print(err)
 			continue
