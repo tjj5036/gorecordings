@@ -67,10 +67,27 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 		log.Print(err)
 		return song
 	}
+	/*
+	  (SELECT cs.concert_id first_concert_id, c.date
+	  FROM concert_setlist as cs
+	  JOIN concerts as c ON cs.concert_id = c.concert_id
+	  JOIN songs as s on cs.song_id = s.song_id
+	  WHERE s.song_id = 1
+	  ORDER BY c.date DESC
+	  LIMIT 1)
+	  UNION ALL
+	  (SELECT cs.concert_id, c.date
+	  FROM concert_setlist as cs
+	  JOIN concerts as c ON cs.concert_id = c.concert_id
+	  JOIN songs as s on cs.song_id = s.song_id
+	  WHERE s.song_id = 1
+	  ORDER BY c.date ASC
+	  LIMIT 1);
+	*/
+
 	song.Song_id = song_id
 	song.Song_name = title
 	song.Lyrics = lyrics
-	// Get first, last played here eventually
 	return song
 }
 
