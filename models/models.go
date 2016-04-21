@@ -18,9 +18,13 @@ type Artist struct {
 }
 
 type Song struct {
-	Song_id   int
-	Song_name string
-	Lyrics    string
+	Song_id        int
+	Song_name      string
+	Lyrics         string
+	FirstConcertId int
+	FirstDate      time.Time
+	LastConcertId  int
+	LastDate       time.Time
 }
 
 type _venue struct {
@@ -67,27 +71,54 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 		log.Print(err)
 		return song
 	}
-	/*
-	  (SELECT cs.concert_id first_concert_id, c.date
-	  FROM concert_setlist as cs
-	  JOIN concerts as c ON cs.concert_id = c.concert_id
-	  JOIN songs as s on cs.song_id = s.song_id
-	  WHERE s.song_id = 1
-	  ORDER BY c.date DESC
-	  LIMIT 1)
-	  UNION ALL
-	  (SELECT cs.concert_id, c.date
-	  FROM concert_setlist as cs
-	  JOIN concerts as c ON cs.concert_id = c.concert_id
-	  JOIN songs as s on cs.song_id = s.song_id
-	  WHERE s.song_id = 1
-	  ORDER BY c.date ASC
-	  LIMIT 1);
-	*/
-
 	song.Song_id = song_id
 	song.Song_name = title
 	song.Lyrics = lyrics
+
+	rows, err := db.Query(
+		"(SELECT cs.concert_id, c.date "+
+			"FROM concert_setlist as cs "+
+			"JOIN concerts as c ON cs.concert_id = c.concert_id "+
+			"JOIN songs as s on cs.song_id = s.song_id "+
+			"WHERE s.song_id = $1 "+
+			"ORDER BY c.date ASC "+
+			"LIMIT 1) "+
+			"UNION ALL "+
+			"(SELECT cs.concert_id, c.date "+
+			"FROM concert_setlist as cs "+
+			"JOIN concerts as c ON cs.concert_id = c.concert_id "+
+			"JOIN songs as s on cs.song_id = s.song_id "+
+			"WHERE s.song_id = $2 "+
+			"ORDER BY c.date DESC "+
+			"LIMIT 1) ORDER BY date", song_id, song_id)
+	if err != nil {
+		log.Print(err)
+		return song
+	}
+	var first_concert_id int
+	var first_concert_date time.Time
+	var last_concert_id int
+	var last_concert_date time.Time
+	counter := 0
+	for rows.Next() {
+		if counter == 0 {
+			err = rows.Scan(&first_concert_id, &first_concert_date)
+		} else {
+			err = rows.Scan(&last_concert_id, &last_concert_date)
+		}
+		if err != nil {
+			log.Print(err)
+			return song
+		}
+		counter = counter + 1
+	}
+
+	if counter == 2 {
+		song.FirstConcertId = first_concert_id
+		song.FirstDate = first_concert_date
+		song.LastConcertId = last_concert_id
+		song.LastDate = last_concert_date
+	}
 	return song
 }
 
