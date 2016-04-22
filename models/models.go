@@ -61,8 +61,8 @@ func LookupSong(db *sql.DB, artist_id int, search_string string) (int, string) {
 	var song_id int
 	var song_name string
 	err := db.QueryRow(
-		"Select song_id, title FROM songs WHERE artist_id = $1 AND title ILIKE '$2%' LIMIT 1",
-		artist_id, search_string).Scan(song_name)
+		"Select song_id, title FROM songs WHERE artist_id = $1 AND title ILIKE '' || $2 || '%' LIMIT 1",
+		artist_id, search_string).Scan(&song_id, &song_name)
 	switch {
 	case err == sql.ErrNoRows:
 		return -1, ""
