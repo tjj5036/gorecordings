@@ -5,6 +5,7 @@ import (
 	"github.com/tjj5036/gorecordings/routes/artists"
 	"github.com/tjj5036/gorecordings/routes/common"
 	"github.com/tjj5036/gorecordings/routes/concerts"
+	"github.com/tjj5036/gorecordings/routes/songs"
 	"log"
 	"net/http"
 )
@@ -19,6 +20,9 @@ func main() {
 		"/artists/:short_name/concert/:concert_url",
 		routes_concert.ConcertInfoFromConcertUrl)
 	router.GET("/artists/:short_name/song/:song_url", routes_artist.SongInfo)
+
+	router.POST("/song/suggest", routes_songs.SuggestSong)
+
 	router.ServeFiles("/static/*filepath", http.Dir("./static"))
 	log.Fatal(http.ListenAndServe(":8009", router))
 }
