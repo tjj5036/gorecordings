@@ -56,6 +56,24 @@ type Concert struct {
 	URL        string
 }
 
+// Lookup song attempts to pattern match a search string
+func LookupSong(db *sql.DB, artist_id int, search_string string) (int, string) {
+	var song_id int
+	var song_name string
+	err := db.QueryRow(
+		"Select song_id, title FROM songs WHERE artist_id = $1 AND title ILIKE '$2%' LIMIT 1",
+		artist_id, search_string).Scan(song_name)
+	switch {
+	case err == sql.ErrNoRows:
+		return -1, ""
+	case err != nil:
+		log.Print(err)
+		return -1, ""
+	default:
+		return song_id, song_name
+	}
+}
+
 // GetSongInfo returns all information relating to a song
 func GetSongInfo(db *sql.DB, song_url string) Song {
 	song := Song{}
