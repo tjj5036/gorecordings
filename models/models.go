@@ -25,6 +25,7 @@ type Song struct {
 	FirstDate      time.Time
 	LastConcertId  int
 	LastDate       time.Time
+	URL            string
 }
 
 type _venue struct {
@@ -332,7 +333,7 @@ func getSetlistForConcert(
 		return songs
 	}
 	rows, err := db.Query(
-		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, a.artist_name "+
+		"SELECT cs.song_id, cs.song_order, s.title, s.artist_id, a.artist_name, s.song_url "+
 			"FROM concert_setlist AS cs JOIN songs AS s ON cs.song_id = s.song_id "+
 			"JOIN artists as a ON s.artist_id = a.artist_id "+
 			"WHERE cs.version = $1 ORDER BY cs.song_order ASC", setlist_version)
@@ -345,9 +346,12 @@ func getSetlistForConcert(
 		var song_id int
 		var song_order int
 		var song_title string
+		var song_url string
 		var cover_artist_id int
 		var cover_artist_name string
-		err = rows.Scan(&song_id, &song_order, &song_title, &cover_artist_id, &cover_artist_name)
+		err = rows.Scan(
+			&song_id, &song_order, &song_title,
+			&cover_artist_id, &cover_artist_name, &song_url)
 		if err != nil {
 			log.Print(err)
 			continue
@@ -359,6 +363,7 @@ func getSetlistForConcert(
 		song := Song{
 			Song_id:   song_id,
 			Song_name: song_title,
+			URL:       song_url,
 		}
 		songs = append(songs, song)
 	}

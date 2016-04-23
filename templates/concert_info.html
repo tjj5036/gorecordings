@@ -1,6 +1,6 @@
 {{ template "header.html" . }}
 <div class="container">
-  <h1>{{ .Artist_Name }} concerts</h1>
+  <h1>{{ .Artist_Name }} - {{ .ConcertInfo.Date.Format "2006-01-02" }}</h1>
   <div class="row">
     <div class="col-md-6">
       <h3>Concert Info</h3>
@@ -23,7 +23,7 @@
       <div>
       {{ if .ConcertInfo.Setlist }}
       {{ range $index, $song := .ConcertInfo.Setlist }}<br>
-      {{ $index }}. {{ $song.Song_name }}
+      {{ add $index 1 }}. <a href="/artists/{{ $.Artist_Short_Name }}/song/{{ $song.URL}}">{{ $song.Song_name }}</a>
       {{ end }}
       </div>
       {{ else }}
