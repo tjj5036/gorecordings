@@ -2,6 +2,7 @@
 <div class="container">
   <h1>{{ .Artist_Name }} - {{ .SongInfo.Song_name }}</h1>
   <div class="row">
+
     <div class="col-md-6">
       <h3> Song Information </h3>
       <dl id="play-stats" class="dl-horizontal">
@@ -20,6 +21,16 @@
         <dd>{{ $.SongInfo.TotalCount }}</dd>
         {{ end }}
       </dl>
+
+      {{ if $.SongInfo.TotalCount }}
+        <h3>Recently Played Dates:</h3>
+          {{ range $index, $concert := .SongInfo.LastPlayedConcerts }}
+          <a href="/artists/{{$.Artist_Short_Name}}/concert/{{ .URL }}">
+            {{.Date.Format "2006-01-02"}} - {{ .Venue.Venue_name }}
+          </a>
+          <br>
+          {{ end }}
+      {{ end }}
     </div>
 
     <div class="col-md-6">

@@ -18,17 +18,18 @@ type Artist struct {
 }
 
 type Song struct {
-	Song_id        int
-	Song_name      string
-	Lyrics         string
-	FirstConcertId int
-	FirstDate      time.Time
-	FirstURL       string
-	LastConcertId  int
-	LastDate       time.Time
-	LastURL        string
-	URL            string
-	TotalCount     int
+	Song_id            int
+	Song_name          string
+	Lyrics             string
+	FirstConcertId     int
+	FirstDate          time.Time
+	FirstURL           string
+	LastConcertId      int
+	LastDate           time.Time
+	LastURL            string
+	URL                string
+	TotalCount         int
+	LastPlayedConcerts []Concert
 }
 
 type _venue struct {
@@ -157,6 +158,46 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 			song_count = 0
 		}
 		song.TotalCount = song_count
+
+		var concerts = make([]Concert, 0)
+		if song_count > 0 {
+			rows, err = db.Query(
+				"SELECT * FROM ( "+
+					"SELECT DISTINCT ON (cs.concert_id) cs.concert_id, c.date, c.concert_friendly_url, venue_name "+
+					"FROM concert_setlist as cs "+
+					"JOIN concerts as c on cs.concert_id = c.concert_id "+
+					"JOIN venues as v ON c.venue_id = v.venue_id "+
+					"WHERE cs.song_id = $1 "+
+					"LIMIT 10) AS inner_select "+
+					"ORDER BY inner_select.date DESC", song_id)
+			if err == nil {
+				for rows.Next() {
+					var concert_id int
+					var concert_date time.Time
+					var concert_url string
+					var venue_name string
+					inner_err := rows.Scan(&concert_id, &concert_date, &concert_url, &venue_name)
+					if inner_err == nil {
+						venue := _venue{
+							Venue_name: venue_name,
+						}
+						concert := Concert{
+							Concert_id: concert_id,
+							Date:       concert_date,
+							URL:        concert_url,
+							Venue:      venue,
+						}
+						concerts = append(concerts, concert)
+					} else {
+						log.Print(inner_err)
+					}
+				}
+				song.LastPlayedConcerts = concerts
+			} else {
+				log.Print(err)
+			}
+
+		}
 	}
 	return song
 }
