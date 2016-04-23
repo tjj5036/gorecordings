@@ -28,6 +28,7 @@ type Song struct {
 	LastDate       time.Time
 	LastURL        string
 	URL            string
+	TotalCount     int
 }
 
 type _venue struct {
@@ -145,6 +146,17 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 		song.LastConcertId = last_concert_id
 		song.LastDate = last_concert_date
 		song.LastURL = last_concert_url
+
+		var song_count int
+		err = db.QueryRow(
+			"SELECT count(concert_id) as song_count FROM "+
+				"(SELECT distinct(concert_id), song_id from concert_setlist "+
+				"WHERE song_id = $1) as inner_select ", song_id).Scan(&song_count)
+		if err != nil {
+			log.Print(err)
+			song_count = 0
+		}
+		song.TotalCount = song_count
 	}
 	return song
 }
