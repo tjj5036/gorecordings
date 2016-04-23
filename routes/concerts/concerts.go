@@ -18,12 +18,14 @@ func ConcertInfoFromConcertUrl(w http.ResponseWriter, r *http.Request, ps httpro
 	page_title := artist_name + " - " + concert.Date.Format("2006-01-02")
 
 	data := struct {
-		Title       string
-		Artist_Name string
-		ConcertInfo models.Concert
+		Title             string
+		Artist_Name       string
+		Artist_Short_Name string
+		ConcertInfo       models.Concert
 	}{
 		page_title,
 		artist_name,
+		short_name,
 		concert,
 	}
 	util.RenderTemplate(w, "concert_info.html", data)
