@@ -23,8 +23,10 @@ type Song struct {
 	Lyrics         string
 	FirstConcertId int
 	FirstDate      time.Time
+	FirstURL       string
 	LastConcertId  int
 	LastDate       time.Time
+	LastURL        string
 	URL            string
 }
 
@@ -95,7 +97,7 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 	song.Lyrics = lyrics
 
 	rows, err := db.Query(
-		"(SELECT cs.concert_id, c.date "+
+		"(SELECT cs.concert_id, c.date, c.concert_friendly_url "+
 			"FROM concert_setlist as cs "+
 			"JOIN concerts as c ON cs.concert_id = c.concert_id "+
 			"JOIN songs as s on cs.song_id = s.song_id "+
@@ -103,7 +105,7 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 			"ORDER BY c.date ASC "+
 			"LIMIT 1) "+
 			"UNION ALL "+
-			"(SELECT cs.concert_id, c.date "+
+			"(SELECT cs.concert_id, c.date, c.concert_friendly_url "+
 			"FROM concert_setlist as cs "+
 			"JOIN concerts as c ON cs.concert_id = c.concert_id "+
 			"JOIN songs as s on cs.song_id = s.song_id "+
@@ -116,14 +118,18 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 	}
 	var first_concert_id int
 	var first_concert_date time.Time
+	var first_concert_url string
 	var last_concert_id int
 	var last_concert_date time.Time
+	var last_concert_url string
 	counter := 0
 	for rows.Next() {
 		if counter == 0 {
-			err = rows.Scan(&first_concert_id, &first_concert_date)
+			err = rows.Scan(
+				&first_concert_id, &first_concert_date, &first_concert_url)
 		} else {
-			err = rows.Scan(&last_concert_id, &last_concert_date)
+			err = rows.Scan(
+				&last_concert_id, &last_concert_date, &last_concert_url)
 		}
 		if err != nil {
 			log.Print(err)
@@ -135,8 +141,10 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 	if counter == 2 {
 		song.FirstConcertId = first_concert_id
 		song.FirstDate = first_concert_date
+		song.FirstURL = first_concert_url
 		song.LastConcertId = last_concert_id
 		song.LastDate = last_concert_date
+		song.LastURL = last_concert_url
 	}
 	return song
 }

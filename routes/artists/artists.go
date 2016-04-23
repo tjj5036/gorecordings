@@ -18,12 +18,14 @@ func SongInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	song_info := models.GetSongInfo(db, song_url)
 
 	data := struct {
-		Title       string
-		Artist_Name string
-		SongInfo    models.Song
+		Title             string
+		Artist_Name       string
+		Artist_Short_Name string
+		SongInfo          models.Song
 	}{
 		artist_name + " - " + song_info.Song_name,
 		artist_name,
+		short_name,
 		song_info,
 	}
 	util.RenderTemplate(w, "song_info.html", data)
