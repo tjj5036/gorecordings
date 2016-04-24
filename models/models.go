@@ -431,66 +431,6 @@ func getSetlistForConcert(
 	return songs
 }
 
-// GetConcert returns a concert struct given a concert id
-// Strategy is to get the concert first (with all venue / location // details),
-// and then setlist / recording information
-func GetConcert(db *sql.DB, concert_id int) Concert {
-	concert := Concert{}
-	var _concert_id int
-	var artist_id int
-	var concert_date time.Time
-	var concert_notes string // byte array?
-	var setlist_version int
-	var venue_name string
-	var location_city string
-	var location_state string
-	var location_country string
-	var artist_name string
-	var artist_shortname string
-
-	err := db.QueryRow(
-		"SELECT c.concert_id, c.artist_id, c.date, c.notes, COALESCE(c.setlist_version, -1), "+
-			"v.venue_name, l.city, l.state, l.country, a.artist_name, "+
-			"a.short_name FROM concerts as c "+
-			"JOIN venues as v ON c.venue_id  = v.venue_id "+
-			"JOIN location as l on v.location_id = l.location_id "+
-			"JOIN artists as a on a.artist_id = c.artist_id "+
-			"WHERE c.concert_id = $1", concert_id).Scan(
-		&_concert_id, &artist_id, &concert_date, &concert_notes, &setlist_version, &venue_name,
-		&location_city, &location_state, &location_country, &artist_name, &artist_shortname)
-
-	if err != nil {
-		log.Print(err)
-		log.Printf("Unable to find concert with id %v", concert_id)
-		return concert
-	}
-
-	recordings := getRecordingsForConcert(db, concert_id)
-	songs := getSetlistForConcert(db, setlist_version, concert_id, artist_id)
-
-	venue := _venue{
-		Venue_name: venue_name,
-		City:       location_city,
-		State:      location_state,
-		Country:    location_country,
-	}
-
-	artist := Artist{
-		Artist_id:   artist_id,
-		Artist_name: artist_name,
-		Short_name:  artist_shortname,
-	}
-
-	concert.Artist = artist
-	concert.Concert_id = _concert_id
-	concert.Date = concert_date
-	concert.Venue = venue
-	concert.Setlist = songs
-	concert.Recordings = recordings
-	concert.Notes = concert_notes
-	return concert
-}
-
 // GetConcertFromURL returns a concert struct given a URL extension
 // Strategy is to get the concert first (with all venue / location // details),
 // and then setlist / recording information
