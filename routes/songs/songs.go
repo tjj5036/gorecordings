@@ -34,6 +34,7 @@ func SuggestSong(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	song_id, song_title := models.LookupSong(
 		db, potential_song.Artist_id, potential_song.Search_string)
+	db.Close()
 	suggested_song.Song_id = song_id
 	suggested_song.Song_title = song_title
 	json.NewEncoder(w).Encode(suggested_song)

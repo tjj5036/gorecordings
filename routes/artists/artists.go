@@ -12,7 +12,7 @@ import (
 func SongInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	short_name := ps.ByName("short_name")
-	artist_name := models.GetArtistFromShortName(db, short_name)
+	artist_name, _ := models.GetArtistFromShortName(db, short_name)
 
 	song_url := ps.ByName("song_url")
 	song_info := models.GetSongInfo(db, song_url)
@@ -53,7 +53,7 @@ func ArtistConcertListing(
 	w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	short_name := ps.ByName("short_name")
-	artist_name := models.GetArtistFromShortName(db, short_name)
+	artist_name, _ := models.GetArtistFromShortName(db, short_name)
 	concerts := models.GetConcertsForArtist(db, short_name)
 	data := struct {
 		Title       string

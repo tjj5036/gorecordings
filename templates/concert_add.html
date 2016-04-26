@@ -1,0 +1,83 @@
+{{ template "header.html" . }}
+<div class="container">
+  <input type="hidden" id="artist_id" value="{{ .Artist_Id }}">
+  <h1>Add Concert</h1>
+
+  <div class="row">
+    <h3>Configure Setlist</h3>
+
+    <div class="col-md-6">
+      <div id="setlist-container">
+
+        <ul id="setlist-song-items" class="list-group">
+        </ul>
+
+        <div style="position:relative">
+          <input id="song_search_string" type="text">
+          <input id="autocomplete" song_id="-1" type="text" disabled="disabled">
+          <button id="add_song_button" disabled="disabled">Add Song</button>
+        </div>
+
+      </div>  <!-- setlist container-->
+
+    </div>
+  </div>
+
+</div>
+
+<script src="/static/js/jquery-2.2.3.min.js"></script>
+<script src="/static/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+<script src="/static/js/Sortable.js"></script>
+<script>
+
+  // Taken right from the README, sue me
+  var el = document.getElementById('setlist-song-items');
+  var sortable = Sortable.create(el);
+
+  $('#add_song_button').click(function() {
+    var song_id = $('#autocomplete').prop('song_id');
+    if (song_id !== undefined || song_id !== -1) {
+      var button_element = '<button type="button" class="btn btn-sm btn-danger">Remove</button>'
+      var song_title = $('#autocomplete').val();
+      var new_list_element = '<li class="list-group-item" song_id="'+song_id+'">'+
+        song_title+button_element;
+        $('#setlist-song-items').append(new_list_element);
+
+      $('#autocomplete').val('');
+      $('#autocomplete').prop('song_id', "-1");
+      $('#add_song_button').prop('disabled', true);
+    }
+  });
+
+
+  $("#song_search_string").keyup(function() {
+    var search_string = $("#song_search_string").val();
+    var artist_id = parseInt($("#artist_id").val());
+    if (search_string.length < 3) {
+      return;
+    }
+
+    $.ajax({
+        url: '/song/suggest',
+        type: "POST",
+        data: JSON.stringify(
+        {"Artist_id": artist_id,
+          "Search_string": search_string}
+        ),
+        contentType: "application/json",
+        complete: function(resp) {
+          var parsed_response = JSON.parse(resp.responseText);
+          var Song_id = parsed_response.Song_id;
+          var Song_title = parsed_response.Song_title;
+
+          if (Song_id !== -1) {
+            $('#autocomplete').prop('song_id', Song_id);
+            $('#autocomplete').val(Song_title);
+            $('#add_song_button').prop('disabled', false);
+          }
+        }
+    });
+  });
+</script>
+</body>
+</html>

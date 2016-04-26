@@ -203,17 +203,18 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 }
 
 // GetArtistFromShortName returns the full artist name from the DB
-// given its short name
-func GetArtistFromShortName(db *sql.DB, short_name string) string {
+// given its short name as well as its ID
+func GetArtistFromShortName(db *sql.DB, short_name string) (string, int) {
 	var artist_name string
+	var artist_id int
 	err := db.QueryRow(
-		"Select artist_name FROM artists WHERE artists.short_name = $1",
-		short_name).Scan(&artist_name)
+		"Select artist_id, artist_name FROM artists WHERE artists.short_name = $1",
+		short_name).Scan(&artist_id, &artist_name)
 	if err != nil {
 		log.Print(err)
-		return ""
+		return "", -1
 	}
-	return artist_name
+	return artist_name, artist_id
 }
 
 // GetArtist gets artist information from the database and returns
