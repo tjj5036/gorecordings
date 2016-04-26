@@ -12,7 +12,7 @@ import (
 func ConcertInfoFromConcertUrl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	db := database.CreateDBHandler()
 	short_name := ps.ByName("short_name")
-	artist_name := models.GetArtistFromShortName(db, short_name)
+	artist_name, _ := models.GetArtistFromShortName(db, short_name)
 	concert_url := ps.ByName("concert_url")
 	concert := models.GetConcertFromURL(db, concert_url)
 	page_title := artist_name + " - " + concert.Date.Format("2006-01-02")
@@ -29,4 +29,23 @@ func ConcertInfoFromConcertUrl(w http.ResponseWriter, r *http.Request, ps httpro
 		concert,
 	}
 	util.RenderTemplate(w, "concert_info.html", data)
+}
+
+// CreateConcert displays a template to create a concert
+func ConcertCreate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	db := database.CreateDBHandler()
+	short_name := ps.ByName("short_name")
+	artist_name, artist_id := models.GetArtistFromShortName(db, short_name)
+	data := struct {
+		Title             string
+		Artist_Name       string
+		Artist_Short_Name string
+		Artist_Id         int
+	}{
+		"Create concert for " + artist_name,
+		artist_name,
+		short_name,
+		artist_id,
+	}
+	util.RenderTemplate(w, "concert_add.html", data)
 }
