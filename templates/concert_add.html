@@ -8,21 +8,22 @@
 
     <div class="col-md-6">
       <div id="setlist-container">
-
         <ul id="setlist-song-items" class="list-group">
         </ul>
-
         <div style="position:relative">
           <input id="song_search_string" type="text">
           <input id="autocomplete" song_id="-1" type="text" disabled="disabled">
           <button id="add_song_button" disabled="disabled">Add Song</button>
         </div>
-
       </div>  <!-- setlist container-->
+    </div>
+
+    <div class="col-md-6">
+
 
     </div>
-  </div>
 
+  </div>
 </div>
 
 <script src="/static/js/jquery-2.2.3.min.js"></script>
@@ -37,10 +38,9 @@
   $('#add_song_button').click(function() {
     var song_id = $('#autocomplete').prop('song_id');
     if (song_id !== undefined || song_id !== -1) {
-      var button_element = '<button type="button" class="btn btn-sm btn-danger">Remove</button>'
+      var button_element = '<button type="button" class="btn btn-sm btn-danger pull-right">Remove</button>'
       var song_title = $('#autocomplete').val();
-      var new_list_element = '<li class="list-group-item" song_id="'+song_id+'">'+
-        song_title+button_element;
+      var new_list_element = '<li class="clearfix list-group-item" song_id="'+song_id+'">'+button_element+song_title;
         $('#setlist-song-items').append(new_list_element);
 
       $('#autocomplete').val('');
