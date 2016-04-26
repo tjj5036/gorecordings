@@ -1,19 +1,22 @@
 #song_search_string{
 position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 11;
-    background: transparent;
+  top: 0;
+  left: 0;
+  z-index: 11;
+  background: transparent;
 
 }
 #autocomplete{
-    position: absolute
-    top: 0;
-    left: 0;
-    background: transparent;
-    z-index: 10;
+  position: absolute
+  top: 0;
+  left: 0;
+  background: transparent;
+  z-index: 10;
 }
 ul
 {
-    list-style-type: none;
+  list-style-type: none;
+}
+body {
+  padding-top:50px;
 }
