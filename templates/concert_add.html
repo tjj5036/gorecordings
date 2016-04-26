@@ -1,8 +1,10 @@
 {{ template "header.html" . }}
 <div class="container">
   <input type="hidden" id="artist_id" value="{{ .Artist_Id }}">
+  <input type="hidden" id="artist_short_name" value="{{ .Artist_Short_Name }}">
   <h1>{{ .Artist_Name }} - New Concert</h1>
 
+  <form>
   <div class="row">
 
     <div class="col-md-6">
@@ -53,6 +55,9 @@
     </div>
 
   </div>
+  <button id="submitConcertButton" type="submit" class="btn btn-default">Submit</button>
+  </form>
+
 </div>
 
 <script src="/static/js/jquery-2.2.3.min.js"></script>
@@ -63,6 +68,49 @@
   // Taken right from the README, sue me
   var el = document.getElementById('setlist-song-items');
   var sortable = Sortable.create(el);
+
+  $('#submitConcertButton').click(function(e) {
+    e.preventDefault();
+    var artist_id = parseInt($("#artist_id").val());
+    var artist_short_name = $("#artist_short_name").val();
+    var concert_date = $('#concertDate').val();
+    var venue = $('#Venue').val();
+    var city = $('#City').val();
+    var state = $('#State').val();
+    var country = $('#Country').val();
+    var notes = $('#Notes').val();
+    var songs = $('#setlist-song-items li');
+    var serialized_songs = [];
+    for (var i = 0; i < songs.length; i++) {
+      serialized_songs.push(
+        {
+          "Song_id": parseInt($(songs[i]).attr('song_id')),
+          "Order": i,
+        }
+      );
+    }
+    $.ajax({
+        url: '/a/artists/'+artist_short_name+'/create',
+        type: "POST",
+        data: JSON.stringify(
+          {
+            "Artist_id": artist_id,
+            "Date": concert_date,
+            "Venue": venue,
+            "City": city,
+            "State": state,
+            "Country": country,
+            "Notes": notes,
+            "Songs": serialized_songs
+          }
+        ),
+        contentType: "application/json",
+        complete: function(resp) {
+          var parsed_response = JSON.parse(resp.responseText);
+          // TODO: redirect / do something appropriately here
+        }
+    });
+  });
 
   $(".remove-button").click(function() {
 
