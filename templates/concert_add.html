@@ -1,26 +1,50 @@
 {{ template "header.html" . }}
 <div class="container">
   <input type="hidden" id="artist_id" value="{{ .Artist_Id }}">
-  <h1>Add Concert</h1>
+  <h1>{{ .Artist_Name }} - New Concert</h1>
 
   <div class="row">
-    <h3>Configure Setlist</h3>
 
     <div class="col-md-6">
+      <h3>Details</h3>
+      <div class="form-group">
+        <label for="concertDate">Date</label>
+        <input type="text" class="form-control" id="concertDate" placeholder="1993-02-02">
+      </div>
+
+      <div class="form-group">
+        <label for="Venue">Venue</label>
+        <input type="text" class="form-control" id="Venue" placeholder="The Electric Factory">
+      </div>
+
+      <div class="form-group">
+        <label for="City">City</label>
+        <input type="text" class="form-control" id="City" placeholder="Philadelphia">
+      </div>
+
+      <div class="form-group">
+        <label for="State">State / Province / Etc</label>
+        <input type="text" class="form-control" id="State" placeholder="PA">
+      </div>
+
+      <div class="form-group">
+        <label for="Country">Country</label>
+        <input type="text" class="form-control" id="Country" placeholder="USA">
+      </div>
+
+    </div> <!-- info container -->
+
+    <div class="col-md-6">
+      <h3>Setlist</h3>
       <div id="setlist-container">
         <ul id="setlist-song-items" class="list-group">
         </ul>
         <div style="position:relative">
-          <input id="song_search_string" type="text">
-          <input id="autocomplete" song_id="-1" type="text" disabled="disabled">
+          <input id="song_search_string" type="text" size="50">
+          <input id="autocomplete" song_id="-1" type="text" size="50" disabled="disabled">
           <button id="add_song_button" disabled="disabled">Add Song</button>
         </div>
       </div>  <!-- setlist container-->
-    </div>
-
-    <div class="col-md-6">
-
-
     </div>
 
   </div>
@@ -35,10 +59,14 @@
   var el = document.getElementById('setlist-song-items');
   var sortable = Sortable.create(el);
 
+  $(".remove-button").click(function() {
+
+  });
+
   $('#add_song_button').click(function() {
     var song_id = $('#autocomplete').prop('song_id');
     if (song_id !== undefined || song_id !== -1) {
-      var button_element = '<button type="button" class="btn btn-sm btn-danger pull-right">Remove</button>'
+      var button_element = '<button type="button" class="btn remove-button btn-sm btn-danger pull-right">Remove</button>'
       var song_title = $('#autocomplete').val();
       var new_list_element = '<li class="clearfix list-group-item" song_id="'+song_id+'">'+button_element+song_title;
         $('#setlist-song-items').append(new_list_element);
