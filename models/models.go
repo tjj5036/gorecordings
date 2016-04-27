@@ -62,36 +62,45 @@ type Concert struct {
 }
 
 // Inserts a venue if it does not exist
-// Note: this is a race condition - fix with a real upsert
 func UpsertVenue(db *sql.DB, venue Venue) int {
-	venue_id := -1
 	var location_id int
-	err := db.QueryRow(
-		"SELECT location_id FROM locations as l "+
-			"WHERE l.city = $1 AND l.state = $2 AND l.country = $3",
+	var venue_id int
+
+	_, err := db.Exec(
+		"INSERT INTO location (city, state, country) VALUES ($1, $2, $3) "+
+			"ON CONFLICT DO NOTHING", venue.City, venue.State, venue.Country)
+	if err != nil {
+		log.Print(err)
+	}
+	err = db.QueryRow(
+		"SELECT location_id from location WHERE city = $1 AND state = $2 AND country = $3",
 		venue.City, venue.State, venue.Country).Scan(&location_id)
 	switch {
 	case err == sql.ErrNoRows:
-	// insert row
-	// "INSERT INTO locations (city, state, country) VALUES ($1, $2, $2)",
-	// (venue.City, venue.State, venue.Country)
+		// impossible / very unlikely unless there's a crazy race condition
+		log.Printf("No location matching after upsert")
+		return -1
 	case err != nil:
 		log.Print(err)
-	default:
+		return -1
 	}
 
-	// At this point, we have a location id that existed or now exists,
-	// attempt to update venue with it
+	_, err = db.Exec(
+		"INSERT INTO venues (venue_name, location_id) VALUES ($1, $2) ",
+		"ON CONFLICT DO NOTHING",
+		venue.Venue_name, location_id)
 	err = db.QueryRow(
-		"SELECT v.venue_id, v.location_id FROM venues as v WHERE "+
-			"v.venue_name = $1 AND v.location_id = $2", venue.Venue_name, location_id).Scan(&venue_id)
+		"SELECT v.venue_id FROM venues as v WHERE "+
+			"v.venue_name = $1 AND v.location_id = $2",
+		venue.Venue_name, location_id).Scan(&venue_id)
 	switch {
 	case err == sql.ErrNoRows:
-		// means venue DNE, so use location ID to insert
-		// INSERT INTO venues (venue_name, location_id) VALUES ($1, $2)
-		// (venue.Venue_name, location_id)
+		// Impossible / very unlikely barring crazy race condition
+		log.Printf("No venues matching after upsert")
+		return -1
 	case err != nil:
-		// general error
+		log.Print(err)
+		return -1
 	}
 	return venue_id
 }
