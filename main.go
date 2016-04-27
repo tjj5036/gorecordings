@@ -18,6 +18,8 @@ func main() {
 	router.GET("/artists/:short_name", routes_artist.ArtistConcertListing)
 	router.GET("/a/artists/:short_name/create/",
 		routes_concert.ConcertCreate)
+	router.POST("/a/artists/:short_name/create/",
+		routes_concert.ConcertCreatePost)
 	router.GET(
 		"/artists/:short_name/concert/:concert_url",
 		routes_concert.ConcertInfoFromConcertUrl)

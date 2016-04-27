@@ -32,7 +32,7 @@ type Song struct {
 	LastPlayedConcerts []Concert
 }
 
-type _venue struct {
+type Venue struct {
 	Venue_id   int
 	Venue_name string
 	City       string
@@ -54,11 +54,46 @@ type Concert struct {
 	Concert_id int
 	Artist     Artist
 	Date       time.Time
-	Venue      _venue
+	Venue      Venue
 	Setlist    []Song
 	Recordings []_recording
 	Notes      string
 	URL        string
+}
+
+// Inserts a venue if it does not exist
+// Note: this is a race condition - fix with a real upsert
+func UpsertVenue(db *sql.DB, venue Venue) int {
+	venue_id := -1
+	var location_id int
+	err := db.QueryRow(
+		"SELECT location_id FROM locations as l "+
+			"WHERE l.city = $1 AND l.state = $2 AND l.country = $3",
+		venue.City, venue.State, venue.Country).Scan(&location_id)
+	switch {
+	case err == sql.ErrNoRows:
+	// insert row
+	// "INSERT INTO locations (city, state, country) VALUES ($1, $2, $2)",
+	// (venue.City, venue.State, venue.Country)
+	case err != nil:
+		log.Print(err)
+	default:
+	}
+
+	// At this point, we have a location id that existed or now exists,
+	// attempt to update venue with it
+	err = db.QueryRow(
+		"SELECT v.venue_id, v.location_id FROM venues as v WHERE "+
+			"v.venue_name = $1 AND v.location_id = $2", venue.Venue_name, location_id).Scan(&venue_id)
+	switch {
+	case err == sql.ErrNoRows:
+		// means venue DNE, so use location ID to insert
+		// INSERT INTO venues (venue_name, location_id) VALUES ($1, $2)
+		// (venue.Venue_name, location_id)
+	case err != nil:
+		// general error
+	}
+	return venue_id
 }
 
 // Lookup song attempts to pattern match a search string
@@ -178,7 +213,7 @@ func GetSongInfo(db *sql.DB, song_url string) Song {
 					var venue_name string
 					inner_err := rows.Scan(&concert_id, &concert_date, &concert_url, &venue_name)
 					if inner_err == nil {
-						venue := _venue{
+						venue := Venue{
 							Venue_name: venue_name,
 						}
 						concert := Concert{
@@ -252,7 +287,7 @@ func GetArtists(db *sql.DB) []Artist {
 func GetConcertsForArtist(db *sql.DB, short_name string) []Concert {
 
 	var concerts = make([]Concert, 0)
-	var venues = make(map[int]_venue)
+	var venues = make(map[int]Venue)
 
 	rows, err := db.Query(
 		"SELECT c.concert_id, c.concert_friendly_url, c.date, "+
@@ -286,7 +321,7 @@ func GetConcertsForArtist(db *sql.DB, short_name string) []Concert {
 
 		_, ok := venues[venue_id]
 		if !ok {
-			venue_info := _venue{
+			venue_info := Venue{
 				Venue_id:   venue_id,
 				Venue_name: venue_name,
 				City:       location_city,
@@ -469,7 +504,7 @@ func GetConcertFromURL(db *sql.DB, concert_url string) Concert {
 	recordings := getRecordingsForConcert(db, concert_id)
 	songs := getSetlistForConcert(db, setlist_version, concert_id, artist_id)
 
-	venue := _venue{
+	venue := Venue{
 		Venue_name: venue_name,
 		City:       location_city,
 		State:      location_state,
