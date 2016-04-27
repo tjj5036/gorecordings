@@ -132,17 +132,20 @@ func ConcertCreatePost(
 	}
 
 	// Attempt to merge venue
-	/*
-		venue := models.Venue{
-			Venue_name: json_body.Venue,
-			City:       json_body.City,
-			State:      json_body.State,
-			Country:    json_body.Country,
-		}
-		location_id := models.UpsertVenue(db, venue)
-		// Attempt to merge location
-		// Attempt to insert concert
-	*/
+	venue := models.Venue{
+		Venue_name: json_body.Venue,
+		City:       json_body.City,
+		State:      json_body.State,
+		Country:    json_body.Country,
+	}
+	location_id := models.UpsertVenue(db, venue)
+	if location_id == -1 {
+		response.Success = false
+		response.Err_msg = "Cannot insert venue!"
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	response.Success = true
 	response.Err_msg = ""
 	json.NewEncoder(w).Encode(response)
