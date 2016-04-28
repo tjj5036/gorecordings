@@ -9,6 +9,7 @@ import (
 	"github.com/tjj5036/gorecordings/util"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -27,6 +28,12 @@ type create_concert_struct struct {
 	Notes     string
 	Songs     []_song_struct
 }
+
+type BySongOrder []_song_struct
+
+func (a BySongOrder) Len() int           { return len(a) }
+func (a BySongOrder) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a BySongOrder) Less(i, j int) bool { return a[i].Order < a[j].Order }
 
 // Checks JSON body for empty strings for required properties
 // Notes and songs are optional (either boring concert or
@@ -92,6 +99,18 @@ func ConcertCreate(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	util.RenderTemplate(w, "concert_add.html", data)
 }
 
+// parseSetlist parses a setlist given from the client. It sorts by
+// order and adjusts order if need be
+func parseSetlist(songs []_song_struct) {
+	sort.Sort(BySongOrder(songs))
+	for i := 0; i < len(songs); i++ {
+		if songs[i].Order != i {
+			log.Printf("Order mismatch of %v and %v", i, songs[i].Order)
+			songs[i].Order = i
+		}
+	}
+}
+
 // CreateConcertPost processes form data submitted for creating a concert
 func ConcertCreatePost(
 	w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -138,8 +157,8 @@ func ConcertCreatePost(
 		State:      json_body.State,
 		Country:    json_body.Country,
 	}
-	location_id := models.UpsertVenue(db, venue)
-	if location_id == -1 {
+	venue_id := models.UpsertVenue(db, venue)
+	if venue_id == -1 {
 		response.Success = false
 		response.Err_msg = "Cannot insert venue!"
 		json.NewEncoder(w).Encode(response)
