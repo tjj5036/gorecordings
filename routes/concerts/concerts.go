@@ -9,8 +9,10 @@ import (
 	"github.com/tjj5036/gorecordings/util"
 	"log"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 type _song_struct struct {
@@ -26,6 +28,7 @@ type create_concert_struct struct {
 	State     string
 	Country   string
 	Notes     string
+	URL       string
 	Songs     []_song_struct
 }
 
@@ -35,7 +38,8 @@ func (a BySongOrder) Len() int           { return len(a) }
 func (a BySongOrder) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a BySongOrder) Less(i, j int) bool { return a[i].Order < a[j].Order }
 
-// Checks JSON body for empty strings for required properties
+// Checks JSON body for empty strings for required properties.
+// Additionally checks the URL to make sure it conforms to a valid extension.
 // Notes and songs are optional (either boring concert or
 // setlist isn't known)
 func checkJsonBody(json_body create_concert_struct) error {
@@ -53,6 +57,14 @@ func checkJsonBody(json_body create_concert_struct) error {
 	}
 	if len(strings.TrimSpace(json_body.City)) == 0 {
 		return errors.New("Invalid City Provided")
+	}
+	if len(strings.TrimSpace(json_body.URL)) == 0 {
+		return errors.New("Invalid URL Provided")
+	}
+	words := regexp.MustCompile("^[a-zA-Z0-9_-]*$")
+	if words.MatchString(json_body.URL) == false {
+		return errors.New(
+			"Only alphanumeric, underscores, and hypens are allowed")
 	}
 	return nil
 }
@@ -100,7 +112,7 @@ func ConcertCreate(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 }
 
 // parseSetlist parses a setlist given from the client. It sorts by
-// order and adjusts order if need be
+// order and adjusts order if need be.
 func parseSetlist(songs []_song_struct) {
 	sort.Sort(BySongOrder(songs))
 	for i := 0; i < len(songs); i++ {
@@ -163,6 +175,36 @@ func ConcertCreatePost(
 		response.Err_msg = "Cannot insert venue!"
 		json.NewEncoder(w).Encode(response)
 		return
+	}
+
+	// Generate version for setlist based on time
+	parseSetlist(json_body.Songs)
+	setlist_version := time.Now().Unix()
+	var concert_id int
+	err = db.QueryRow("INSERT INTO concerts ( "+
+		"artist_id, venue_id, date, notes, setlist_version, concert_friendly_url) "+
+		"VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING concert_id",
+		artist_id, venue_id, json_body.Date,
+		json_body.Notes, setlist_version, json_body.URL).Scan(&concert_id)
+	if err != nil {
+		log.Printf("Cannot create concert")
+		log.Print(err)
+		response.Success = false
+		response.Err_msg = "Cannot insert concert - please try again."
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Yes I know you can do this in one shot
+	for i := 0; i < len(json_body.Songs); i++ {
+		_, err := db.Exec("INSERT INTO concert_setlist ( "+
+			"concert_id, song_id, song_order, version) VALUES "+
+			"VALUES ($1, $2, $3, $4)",
+			concert_id, json_body.Songs[i].Song_id, i, setlist_version)
+		if err != nil {
+			log.Printf("Error inserting song: ")
+			log.Print(err)
+		}
 	}
 
 	response.Success = true
