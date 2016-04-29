@@ -46,7 +46,7 @@ CREATE TABLE concert_setlist (
   song_id                       integer NOT NULL references songs(song_id),
   song_order                    integer NOT NULL,
   version                       integer NOT NULL,
-  UNIQUE (song_order, version)
+  UNIQUE (concert_id, song_order, version)
 );
 
 CREATE TABLE recording_types (
