@@ -73,7 +73,8 @@ func UpsertVenue(db *sql.DB, venue Venue) int {
 		log.Print(err)
 	}
 	err = db.QueryRow(
-		"SELECT location_id from location WHERE city = $1 AND state = $2 AND country = $3",
+		"SELECT location_id from location as l "+
+			"WHERE l.city = $1 AND l.state = $2 AND l.country = $3",
 		venue.City, venue.State, venue.Country).Scan(&location_id)
 	switch {
 	case err == sql.ErrNoRows:
@@ -81,14 +82,20 @@ func UpsertVenue(db *sql.DB, venue Venue) int {
 		log.Printf("No location matching after upsert")
 		return -1
 	case err != nil:
+		log.Printf("Error after upset")
 		log.Print(err)
 		return -1
 	}
 
 	_, err = db.Exec(
 		"INSERT INTO venues (venue_name, location_id) VALUES ($1, $2) ",
-		"ON CONFLICT DO NOTHING",
 		venue.Venue_name, location_id)
+	if err != nil {
+		log.Printf("Cannot create venue entry")
+		log.Print(err)
+		return -1
+	}
+
 	err = db.QueryRow(
 		"SELECT v.venue_id FROM venues as v WHERE "+
 			"v.venue_name = $1 AND v.location_id = $2",
@@ -99,6 +106,8 @@ func UpsertVenue(db *sql.DB, venue Venue) int {
 		log.Printf("No venues matching after upsert")
 		return -1
 	case err != nil:
+		log.Printf("%v", venue.Venue_name)
+		log.Printf("Error getting venue id after upsert")
 		log.Print(err)
 		return -1
 	}
